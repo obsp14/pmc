@@ -1,0 +1,91 @@
+/*
+ * nucleo_f446re.overlay - pmc hardware configuration (UNTESTED)
+ *
+ * USART2 (PA2/PA3, ST-LINK VCP)  -> MCTP over serial to the laptop
+ * USART1 (PA9/PA10)              -> console / logs (USB-UART adapter)
+ * I2C1   (PB8 SCL / PB9 SDA)     -> I2C target 0x42 for the Linux hwmon driver
+ * ADC1                           -> die temperature + VREFINT
+ * IWDG                           -> hardware watchdog behind task_wdt
+ *
+ * Flash layout (STM32F446RE, 512 KiB, sectors 4x16K, 1x64K, 3x128K):
+ *   0x00000 32K  MCUboot          (sectors 0-1)
+ *   0x08000 32K  storage / NVS    (sectors 2-3, NVS needs >= 2 sectors)
+ *   0x10000 64K  unused           (sector 4)
+ *   0x20000 128K slot0 (primary)  (sector 5)
+ *   0x40000 128K slot1 (secondary)(sector 6)
+ *   0x60000 128K scratch          (sector 7)
+ * If MCUboot does not fit in 32K with your config, use sectors 0-3 for it
+ * and move storage to two 128K sectors (shrinking the image slots).
+ */
+/ {
+	chosen {
+		zephyr,console = &usart1;
+		zephyr,shell-uart = &usart1;
+		zephyr,code-partition = &slot0_partition;
+		pmc,mctp-uart = &usart2;
+	};
+};
+
+&usart1 {
+	pinctrl-0 = <&usart1_tx_pa9 &usart1_rx_pa10>;
+	pinctrl-names = "default";
+	current-speed = <115200>;
+	status = "okay";
+};
+
+&usart2 {
+	current-speed = <115200>;
+	status = "okay";
+};
+
+&adc1 {
+	status = "okay";
+};
+
+&die_temp {
+	status = "okay";
+};
+
+&vref {
+	status = "okay";
+};
+
+&iwdg {
+	status = "okay";
+};
+
+&i2c1 {
+	status = "okay";
+	clock-frequency = <I2C_BITRATE_STANDARD>;
+};
+
+&flash0 {
+	/delete-node/ partitions;
+	partitions {
+		compatible = "fixed-partitions";
+		#address-cells = <1>;
+		#size-cells = <1>;
+
+		boot_partition: partition@0 {
+			label = "mcuboot";
+			reg = <0x00000000 0x00008000>;
+			read-only;
+		};
+		storage_partition: partition@8000 {
+			label = "storage";
+			reg = <0x00008000 0x00008000>;
+		};
+		slot0_partition: partition@20000 {
+			label = "image-0";
+			reg = <0x00020000 0x00020000>;
+		};
+		slot1_partition: partition@40000 {
+			label = "image-1";
+			reg = <0x00040000 0x00020000>;
+		};
+		scratch_partition: partition@60000 {
+			label = "image-scratch";
+			reg = <0x00060000 0x00020000>;
+		};
+	};
+};

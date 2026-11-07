@@ -1,0 +1,12 @@
+build/
+__pycache__/
+.pytest_cache/
+*.pyc
+keys/*.pem
+linux/*.ko
+linux/*.o
+linux/*.mod*
+linux/.*.cmd
+linux/Module.symvers
+linux/modules.order
+linux/*.dtbo
